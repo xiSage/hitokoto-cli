@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  Trimmer root descriptor for Native AOT.
+
+  The app uses AddDelegate/AddAsyncDelegate (not AddCommand<T>/
+  SetDefaultCommand<T>), so Spectre.Console.Cli never calls the reflection-
+  based ConfigurationHelper.GetSettingsType at runtime. Roots:
+
+  - Spectre.Console(.Cli): kept wholesale so its internal help/version/
+    command-modelling code (which carries [RequiresDynamicCode] annotations)
+    still has the metadata it needs.
+  - hitokoto: kept wholesale so Spectre's property-based settings binding
+    (which reflects over [CommandOption]/[CommandArgument] attributes and
+    property setters) finds FetchSettings / ConfigSettings / etc. intact.
+-->
+<linker>
+  <assembly fullname="Spectre.Console.Cli" preserve="All" />
+  <assembly fullname="Spectre.Console" preserve="All" />
+  <assembly fullname="hitokoto" preserve="All" />
+</linker>
