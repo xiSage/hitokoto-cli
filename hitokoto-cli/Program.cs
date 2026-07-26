@@ -65,6 +65,7 @@ app.Configure(config =>
 {
     config.Settings.ApplicationName = "hitokoto";
     config.Settings.ShowOptionDefaultValues = true;
+    config.UseStrictParsing();
 
     config.SetExceptionHandler((ex, resolver) =>
     {
@@ -104,6 +105,13 @@ app.Configure(config =>
             .WithDescription("重置配置文件为默认值");
     });
 });
+
+// Top-level version: when --version/-v appears, print version and exit.
+if (IsVersionRequest(args))
+{
+    PrintVersion();
+    return 0;
+}
 
 // Top-level help: when --help/-h appears before any subcommand, print a
 // comprehensive custom help (Spectre's auto-help would expose the hidden
@@ -153,6 +161,30 @@ static string[] ResolveEffectiveArgs(string[] args)
     }
 
     return args;
+}
+
+static bool IsVersionRequest(string[] args)
+{
+    foreach (var a in args)
+    {
+        if (a is "--version" or "-v")
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static void PrintVersion()
+{
+    var version = typeof(Program).Assembly
+        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+        .InformationalVersion ?? "unknown";
+    // 去除 git commit hash 后缀 (如 +abc123)
+    var plus = version.IndexOf('+');
+    if (plus >= 0) version = version[..plus];
+    Console.WriteLine(version);
 }
 
 static bool IsTopLevelHelpRequest(string[] args)

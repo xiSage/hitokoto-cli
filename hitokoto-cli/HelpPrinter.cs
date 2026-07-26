@@ -21,6 +21,7 @@ internal static class HelpPrinter
         console.MarkupLine("  [green]hitokoto[/] [grey][[OPTIONS]][/]");
         console.MarkupLine("  [green]hitokoto config[/] [grey]<COMMAND>[/]");
         console.MarkupLine("  [green]hitokoto[/] [grey][[--help|-h]][/]");
+        console.MarkupLine("  [green]hitokoto[/] [grey][[--version|-v]][/]");
         console.WriteLine();
 
         console.MarkupLine("[bold]选项（默认获取一言）[/]");
@@ -34,6 +35,7 @@ internal static class HelpPrinter
         PrintOption(console, "    --show-link <TRUE_FALSE>", "full 格式是否显示链接（默认 true）");
         PrintOption(console, "    --no-config", "忽略配置文件，使用内置默认值");
         PrintOption(console, "-h, --help", "显示此帮助信息");
+        PrintOption(console, "-v, --version", "显示版本信息");
         console.WriteLine();
 
         console.MarkupLine("[bold]分类代码 (a-l)[/]");
