@@ -6,7 +6,7 @@
 
 ### 下载预编译二进制
 
-从 [Releases](https://github.com/yourusername/hitokoto-cli/releases) 下载对应平台的可执行文件。
+从 [Releases](https://github.com/xiSage/hitokoto-cli/releases) 下载对应平台的可执行文件。
 
 ### 从源码构建
 
