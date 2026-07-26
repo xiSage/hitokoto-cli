@@ -58,13 +58,17 @@ jobs:
           case "${{ matrix.rid }}" in
             linux-arm64)
               sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
-              sudo rm -f /usr/bin/ld.bfd
-              sudo ln -s /usr/bin/aarch64-linux-gnu-ld /usr/bin/ld.bfd
+              for tool in ld.bfd objcopy strip; do
+                sudo rm -f /usr/bin/$tool
+                sudo ln -s /usr/bin/aarch64-linux-gnu-$tool /usr/bin/$tool
+              done
               ;;
             linux-arm)
               sudo apt-get update && sudo apt-get install -y gcc-arm-linux-gnueabihf
-              sudo rm -f /usr/bin/ld.bfd
-              sudo ln -s /usr/bin/arm-linux-gnueabihf-ld /usr/bin/ld.bfd
+              for tool in ld.bfd objcopy strip; do
+                sudo rm -f /usr/bin/$tool
+                sudo ln -s /usr/bin/arm-linux-gnueabihf-$tool /usr/bin/$tool
+              done
               ;;
           esac
 
