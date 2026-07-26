@@ -56,8 +56,14 @@ jobs:
         shell: bash
         run: |
           case "${{ matrix.rid }}" in
-            linux-arm64) sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu ;;
-            linux-arm)   sudo apt-get update && sudo apt-get install -y gcc-arm-linux-gnueabihf ;;
+            linux-arm64)
+              sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
+              sudo ln -sf /usr/bin/aarch64-linux-gnu-ld /usr/bin/aarch64-linux-gnu-ld.bfd
+              ;;
+            linux-arm)
+              sudo apt-get update && sudo apt-get install -y gcc-arm-linux-gnueabihf
+              sudo ln -sf /usr/bin/arm-linux-gnueabihf-ld /usr/bin/arm-linux-gnueabihf-ld.bfd
+              ;;
           esac
 
       - name: Restore
