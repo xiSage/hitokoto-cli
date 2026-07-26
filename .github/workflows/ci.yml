@@ -130,3 +130,34 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
+
+      - name: Compute SHA256 for Homebrew formula
+        id: sha
+        shell: bash
+        run: |
+          # 版本号（去掉 tag 前缀的 v）
+          TAG="${GITHUB_REF_NAME#v}"
+          echo "version=${TAG}" >> "$GITHUB_OUTPUT"
+
+          # 计算各架构压缩包的 SHA256
+          for rid in osx-x64 osx-arm64 linux-x64 linux-arm64 linux-arm; do
+            file="artifacts/${{ env.ARTIFACT_NAME }}-${rid}.tar.gz"
+            if [ -f "$file" ]; then
+              sha=$(sha256sum "$file" | awk '{print $1}')
+              echo "${rid}=${sha}" >> "$GITHUB_OUTPUT"
+              echo "  ${rid}: ${sha}"
+            fi
+          done
+
+      - name: Update Homebrew tap formula
+        uses: xiSage/homebrew-tap/.github/actions/bump-formula@main
+        with:
+          formula-path: Formula/hitokoto-cli.rb
+          version: ${{ steps.sha.outputs.version }}
+          tag: ${{ github.ref_name }}
+          osx-x64-sha: ${{ steps.sha.outputs.osx-x64 }}
+          osx-arm64-sha: ${{ steps.sha.outputs.osx-arm64 }}
+          linux-x64-sha: ${{ steps.sha.outputs.linux-x64 }}
+          linux-arm64-sha: ${{ steps.sha.outputs.linux-arm64 }}
+          linux-arm-sha: ${{ steps.sha.outputs.linux-arm }}
+          committer-token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
