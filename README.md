@@ -8,6 +8,20 @@
 
 从 [Releases](https://github.com/xiSage/hitokoto-cli/releases) 下载对应平台的可执行文件。
 
+### Homebrew (macOS / Linux)
+
+```bash
+brew install xisage/tap/hitokoto-cli
+```
+
+### AUR (Arch Linux)
+
+```bash
+yay -S hitokoto-cli-bin
+# 或
+paru -S hitokoto-cli-bin
+```
+
 ### 从源码构建
 
 需要 [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)。
