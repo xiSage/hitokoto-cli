@@ -2,6 +2,8 @@
 
 从 [hitokoto.cn](https://hitokoto.cn) 获取「一言」的命令行工具。
 
+![screenshot](screenshots/1.png)
+
 ## 安装
 
 ### 下载预编译二进制
