@@ -70,6 +70,46 @@ jobs:
           echo "ANDROID_NDK_HOME=${NDK_ROOT}" >> "$GITHUB_ENV"
           echo "Installed NDK ${NDK_VERSION} at ${NDK_ROOT}"
 
+      - name: Build OpenSSL for Android
+        if: startsWith(matrix.rid, 'linux-bionic')
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK_TOOLCHAIN="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64"
+
+          case "${{ matrix.rid }}" in
+            linux-bionic-arm64)
+              OPENSSL_TARGET="android-arm64"
+              export CC="$NDK_TOOLCHAIN/bin/aarch64-linux-android21-clang"
+              ;;
+            linux-bionic-x64)
+              OPENSSL_TARGET="android-x86_64"
+              export CC="$NDK_TOOLCHAIN/bin/x86_64-linux-android21-clang"
+              ;;
+          esac
+
+          export ANDROID_NDK_HOME="$ANDROID_NDK_ROOT"
+          export PATH="$NDK_TOOLCHAIN/bin:$PATH"
+
+          OPENSSL_VERSION="1.1.1w"
+          OPENSSL_INSTALL="$HOME/openssl-android"
+
+          curl -fsSL -o /tmp/openssl.tar.gz \
+            "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
+          tar xzf /tmp/openssl.tar.gz -C /tmp
+          cd "/tmp/openssl-${OPENSSL_VERSION}"
+
+          ./Configure "$OPENSSL_TARGET" \
+            -D__ANDROID_API__=21 \
+            no-shared no-tests no-comp \
+            --prefix="$OPENSSL_INSTALL"
+
+          make -j$(nproc)
+          make install_sw
+
+          echo "OPENSSL_DIR=${OPENSSL_INSTALL}" >> "$GITHUB_ENV"
+          echo "Built OpenSSL ${OPENSSL_VERSION} for ${OPENSSL_TARGET} -> ${OPENSSL_INSTALL}"
+
       - name: Install cross-compilation toolchain (Linux ARM)
         if: runner.os == 'Linux' && startsWith(matrix.rid, 'linux-arm')
         shell: bash
@@ -95,16 +135,22 @@ jobs:
         run: dotnet restore ${{ env.PROJECT_DIR }} -r ${{ matrix.rid }}
 
       - name: Publish
-        run: >
-          dotnet publish ${{ env.PROJECT_DIR }}
-          --configuration Release
-          --runtime ${{ matrix.rid }}
-          --self-contained true
-          -p:PublishSingleFile=true
-          -p:DebugType=none
-          -p:DebugSymbols=false
-          ${{ matrix.aot-args }}
-          -o publish/${{ matrix.rid }}
+        shell: bash
+        run: |
+          OPENSSL_ARG=""
+          if [ -n "${OPENSSL_DIR:-}" ]; then
+            OPENSSL_ARG="-p:OpenSslDir=${OPENSSL_DIR}"
+          fi
+          dotnet publish ${{ env.PROJECT_DIR }} \
+            --configuration Release \
+            --runtime ${{ matrix.rid }} \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:DebugType=none \
+            -p:DebugSymbols=false \
+            ${{ matrix.aot-args }} \
+            ${OPENSSL_ARG} \
+            -o publish/${{ matrix.rid }}
 
       - name: Package (Unix)
         if: runner.os != 'Windows'

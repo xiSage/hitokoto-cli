@@ -38,6 +38,16 @@
     <LinkerArg Condition="$(RuntimeIdentifier.EndsWith('-arm'))"   Include="--target=armv7a-linux-androideabi21"/>
   </ItemGroup>
 
+  <!-- Statically link OpenSSL when $(OpenSslDir) is provided (avoids runtime
+       dependency on system libssl.so which may be the wrong version). -->
+  <ItemGroup Condition="$(RuntimeIdentifier.StartsWith('linux-bionic')) And '$(OpenSslDir)' != ''">
+    <LinkerArg Include="-L$(OpenSslDir)/lib"/>
+    <LinkerArg Include="-Wl,-Bstatic"/>
+    <LinkerArg Include="-lssl"/>
+    <LinkerArg Include="-lcrypto"/>
+    <LinkerArg Include="-Wl,-Bdynamic"/>
+  </ItemGroup>
+
   <!-- Windows-only: write .cmd shims so MSBuild can launch the NDK executables. -->
   <Target Name="PrepareNdkBatches"
           Condition="$(RuntimeIdentifier.StartsWith('linux-bionic')) And '$(OS)' == 'Windows_NT'"
