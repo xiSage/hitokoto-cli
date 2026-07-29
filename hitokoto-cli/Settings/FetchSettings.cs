@@ -24,11 +24,11 @@ internal sealed class FetchSettings : CommandSettings
     [Description("API 端点 URL")]
     public string? Endpoint { get; set; }
 
-    [CommandOption("--format <FORMAT>")]
+    [CommandOption("-f|--format <FORMAT>")]
     [Description("CLI 输出格式: text | json | full")]
     public OutputFormat? Format { get; set; }
 
-    [CommandOption("--raw <ENCODE>")]
+    [CommandOption("-r|--raw <ENCODE>")]
     [Description("透传 API encode 原样输出: text | json (与 --format 互斥)")]
     public RawEncode? Raw { get; set; }
 
@@ -40,7 +40,7 @@ internal sealed class FetchSettings : CommandSettings
     [Description("full 格式是否显示链接 (true|false，缺省则显示)")]
     public bool? ShowLink { get; set; }
 
-    [CommandOption("--no-config")]
+    [CommandOption("-n|--no-config")]
     [Description("忽略配置文件，使用内置默认值")]
     public bool NoConfig { get; set; }
 }

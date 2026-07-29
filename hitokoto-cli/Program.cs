@@ -87,6 +87,7 @@ app.Configure(config =>
     {
         branch.AddDelegate<ConfigSettings>("list",
             (ctx, s, ct) => configListCommand.Execute(ctx, s, ct))
+            .WithAlias("ls")
             .WithDescription("列出全部配置值");
         branch.AddDelegate<ConfigGetSettings>("get",
             (ctx, s, ct) => configGetCommand.Execute(ctx, s, ct))
@@ -96,6 +97,7 @@ app.Configure(config =>
             .WithDescription("设置配置值");
         branch.AddDelegate<ConfigUnsetSettings>("unset",
             (ctx, s, ct) => configUnsetCommand.Execute(ctx, s, ct))
+            .WithAlias("rm")
             .WithDescription("清除配置值（恢复默认）");
         branch.AddDelegate<ConfigSettings>("path",
             (ctx, s, ct) => configPathCommand.Execute(ctx, s, ct))
