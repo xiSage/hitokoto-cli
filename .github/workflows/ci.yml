@@ -157,7 +157,7 @@ jobs:
             echo " Fetch a random hitokoto sentence in the terminal."
           } > "${PKG_ROOT}/DEBIAN/control"
 
-          dpkg-deb --build "${PKG_ROOT}" \
+          dpkg-deb -Zgzip --build "${PKG_ROOT}" \
             "${PKG_NAME}-${RID}.deb"
 
       - name: Package (Windows)
@@ -219,7 +219,6 @@ jobs:
         uses: xiSage/homebrew-tap/.github/actions/bump-formula@main
         with:
           formula-path: Formula/hitokoto-cli.rb
-          version: ${{ steps.sha.outputs.version }}
           tag: ${{ github.ref_name }}
           osx-x64-sha: ${{ steps.sha.outputs.osx-x64 }}
           osx-arm64-sha: ${{ steps.sha.outputs.osx-arm64 }}
