@@ -157,7 +157,7 @@ jobs:
             echo " Fetch a random hitokoto sentence in the terminal."
           } > "${PKG_ROOT}/DEBIAN/control"
 
-          dpkg-deb -Zgzip --build "${PKG_ROOT}" \
+          dpkg-deb -Zxz --build "${PKG_ROOT}" \
             "${PKG_NAME}-${RID}.deb"
 
       - name: Package (Windows)
