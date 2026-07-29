@@ -120,6 +120,46 @@ jobs:
           tar czf ${{ env.ARTIFACT_NAME }}-${{ matrix.display-rid || matrix.rid }}.tar.gz \
             -C publish/${{ matrix.display-rid || matrix.rid }} ${{ env.ARTIFACT_NAME }}
 
+      - name: Package (Termux deb)
+        if: runner.os != 'Windows' && contains(matrix.aot-args, 'TermuxRpath')
+        shell: bash
+        run: |
+          RID="${{ matrix.display-rid || matrix.rid }}"
+          # Map RID to Termux architecture name
+          case "$RID" in
+            *arm64*) TERMUX_ARCH=aarch64 ;;
+            *x64*)   TERMUX_ARCH=x86_64 ;;
+          esac
+          # Read version from .csproj so it's valid on non-tag builds too
+          VERSION=$(grep -oP '<Version>\K[^<]+' ${{ env.PROJECT_DIR }}/*.csproj)
+
+          PKG_NAME="${{ env.ARTIFACT_NAME }}"
+          PKG_ROOT="/tmp/${PKG_NAME}-termux-build"
+
+          mkdir -p "${PKG_ROOT}/DEBIAN"
+          mkdir -p "${PKG_ROOT}/data/data/com.termux/files/usr/bin"
+          mkdir -p "${PKG_ROOT}/data/data/com.termux/files/usr/share/doc/${PKG_NAME}"
+
+          cp "publish/${RID}/${PKG_NAME}" \
+             "${PKG_ROOT}/data/data/com.termux/files/usr/bin/"
+          cp LICENSE \
+             "${PKG_ROOT}/data/data/com.termux/files/usr/share/doc/${PKG_NAME}/copyright"
+
+          {
+            echo "Package: ${PKG_NAME}"
+            echo "Version: ${VERSION}"
+            echo "Section: utils"
+            echo "Priority: optional"
+            echo "Architecture: ${TERMUX_ARCH}"
+            echo "Maintainer: xiSage <57551864+xiSage@users.noreply.github.com>"
+            echo "Homepage: https://github.com/xiSage/hitokoto-cli"
+            echo "Description: Hitokoto CLI"
+            echo " Fetch a random hitokoto sentence in the terminal."
+          } > "${PKG_ROOT}/DEBIAN/control"
+
+          dpkg-deb --build "${PKG_ROOT}" \
+            "${PKG_NAME}-${RID}.deb"
+
       - name: Package (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -187,3 +227,12 @@ jobs:
           linux-arm64-sha: ${{ steps.sha.outputs.linux-arm64 }}
           linux-arm-sha: ${{ steps.sha.outputs.linux-arm }}
           committer-token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      - name: Trigger termux-repo deployment
+        shell: bash
+        run: |
+          curl -fsSL -X POST \
+            -H "Authorization: token ${{ secrets.REPO_ACCESS_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/xiSage/termux-repo/dispatches \
+            -d '{"event_type": "deploy-termux-debs", "client_payload": {"run_id": "${{ github.run_id }}"}}'
