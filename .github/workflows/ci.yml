@@ -226,7 +226,7 @@ jobs:
           linux-x64-sha: ${{ steps.sha.outputs.linux-x64 }}
           linux-arm64-sha: ${{ steps.sha.outputs.linux-arm64 }}
           linux-arm-sha: ${{ steps.sha.outputs.linux-arm }}
-          committer-token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          committer-token: ${{ secrets.REPO_ACCESS_TOKEN }}
 
       - name: Trigger termux-repo deployment
         shell: bash
