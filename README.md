@@ -24,6 +24,23 @@ yay -S hitokoto-cli-bin
 paru -S hitokoto-cli-bin
 ```
 
+### Termux (Android)
+
+添加软件源：
+
+```bash
+echo "deb [trusted=yes] https://xisage.com/termux-repo stable main" \
+  > $PREFIX/etc/apt/sources.list.d/xisage.list
+
+pkg update
+```
+
+安装：
+
+```bash
+pkg install hitokoto
+```
+
 ### 从源码构建
 
 需要 [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)。
