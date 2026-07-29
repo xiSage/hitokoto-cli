@@ -37,19 +37,43 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { rid: win-x64,   os: windows-latest }
-          - { rid: win-arm64, os: windows-latest }
-          - { rid: win-x86,   os: windows-latest }
-          - { rid: linux-x64,   os: ubuntu-latest }
-          - { rid: linux-arm64, os: ubuntu-latest }
-          - { rid: linux-arm,   os: ubuntu-latest }
-          - { rid: osx-x64,   os: macos-latest }
-          - { rid: osx-arm64, os: macos-latest }
+          - { rid: win-x64,   os: windows-latest, aot-args: '' }
+          - { rid: win-arm64, os: windows-latest, aot-args: '' }
+          - { rid: win-x86,   os: windows-latest, aot-args: '' }
+          - { rid: linux-x64,   os: ubuntu-latest, aot-args: '' }
+          - { rid: linux-arm64, os: ubuntu-latest, aot-args: '' }
+          - { rid: linux-arm,   os: ubuntu-latest, aot-args: '' }
+          - { rid: osx-x64,   os: macos-latest, aot-args: '' }
+          - { rid: osx-arm64, os: macos-latest, aot-args: '' }
+          # Android (bionic libc) executables — built via the Android NDK toolchain.
+          # See hitokoto-cli/BionicNativeAot.targets. arm64 covers most devices;
+          # x64 covers emulators / x86 tablets.
+          - { rid: linux-bionic-arm64, os: ubuntu-latest, aot-args: '-p:DisableUnsupportedError=true -p:PublishAotUsingRuntimePack=true' }
+          - { rid: linux-bionic-x64,   os: ubuntu-latest, aot-args: '-p:DisableUnsupportedError=true -p:PublishAotUsingRuntimePack=true' }
+          # Termux: Android binaries with RPATH pointing to
+          # /data/data/com.termux/files/usr/lib so they can find
+          # openssl1.1 (or other libs installed via pkg).
+          - { rid: linux-bionic-arm64, os: ubuntu-latest, aot-args: '-p:DisableUnsupportedError=true -p:PublishAotUsingRuntimePack=true -p:TermuxRpath=/data/data/com.termux/files/usr/lib', display-rid: 'linux-bionic-arm64-termux' }
+          - { rid: linux-bionic-x64,   os: ubuntu-latest, aot-args: '-p:DisableUnsupportedError=true -p:PublishAotUsingRuntimePack=true -p:TermuxRpath=/data/data/com.termux/files/usr/lib', display-rid: 'linux-bionic-x64-termux' }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Setup Android NDK
+        if: startsWith(matrix.rid, 'linux-bionic')
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK_VERSION=r27c
+          curl -fsSL -o /tmp/ndk.zip "https://dl.google.com/android/repository/android-ndk-${NDK_VERSION}-linux.zip"
+          unzip -q /tmp/ndk.zip -d "$HOME"
+          NDK_ROOT="$HOME/android-ndk-${NDK_VERSION}"
+          # Propagate to subsequent steps (the BionicNativeAot.targets reads $(ANDROID_NDK_ROOT)).
+          echo "ANDROID_NDK_ROOT=${NDK_ROOT}" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=${NDK_ROOT}" >> "$GITHUB_ENV"
+          echo "Installed NDK ${NDK_VERSION} at ${NDK_ROOT}"
 
       - name: Install cross-compilation toolchain (Linux ARM)
         if: runner.os == 'Linux' && startsWith(matrix.rid, 'linux-arm')
@@ -76,36 +100,38 @@ jobs:
         run: dotnet restore ${{ env.PROJECT_DIR }} -r ${{ matrix.rid }}
 
       - name: Publish
-        run: >
-          dotnet publish ${{ env.PROJECT_DIR }}
-          --configuration Release
-          --runtime ${{ matrix.rid }}
-          --self-contained true
-          -p:PublishSingleFile=true
-          -p:DebugType=none
-          -p:DebugSymbols=false
-          -o publish/${{ matrix.rid }}
+        shell: bash
+        run: |
+          dotnet publish ${{ env.PROJECT_DIR }} \
+            --configuration Release \
+            --runtime ${{ matrix.rid }} \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:DebugType=none \
+            -p:DebugSymbols=false \
+            ${{ matrix.aot-args }} \
+            -o publish/${{ matrix.display-rid || matrix.rid }}
 
       - name: Package (Unix)
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          chmod +x publish/${{ matrix.rid }}/${{ env.ARTIFACT_NAME }}
-          tar czf ${{ env.ARTIFACT_NAME }}-${{ matrix.rid }}.tar.gz \
-            -C publish/${{ matrix.rid }} ${{ env.ARTIFACT_NAME }}
+          chmod +x publish/${{ matrix.display-rid || matrix.rid }}/${{ env.ARTIFACT_NAME }}
+          tar czf ${{ env.ARTIFACT_NAME }}-${{ matrix.display-rid || matrix.rid }}.tar.gz \
+            -C publish/${{ matrix.display-rid || matrix.rid }} ${{ env.ARTIFACT_NAME }}
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Compress-Archive -Path publish/${{ matrix.rid }}/${{ env.ARTIFACT_NAME }}.exe `
-            -DestinationPath ${{ env.ARTIFACT_NAME }}-${{ matrix.rid }}.zip
+          Compress-Archive -Path publish/${{ matrix.display-rid || matrix.rid }}/${{ env.ARTIFACT_NAME }}.exe `
+            -DestinationPath ${{ env.ARTIFACT_NAME }}-${{ matrix.display-rid || matrix.rid }}.zip
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.ARTIFACT_NAME }}-${{ matrix.rid }}
-          path: ${{ env.ARTIFACT_NAME }}-${{ matrix.rid }}.*
+          name: ${{ env.ARTIFACT_NAME }}-${{ matrix.display-rid || matrix.rid }}
+          path: ${{ env.ARTIFACT_NAME }}-${{ matrix.display-rid || matrix.rid }}.*
 
   release:
     name: Release
