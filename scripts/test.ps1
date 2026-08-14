@@ -55,7 +55,7 @@ function Test-Case {
 
     Write-Host "  TEST: $Name" -NoNewline
     try {
-        $errFile = Join-Path $env:TEMP ("hitokoto-stderr-" + [guid]::NewGuid().ToString("N") + ".log")
+        $errFile = Join-Path ([System.IO.Path]::GetTempPath()) ("hitokoto-stderr-" + [guid]::NewGuid().ToString("N") + ".log")
         $output = & $binPath @CliArgs 2> $errFile
         $exitCode = $LASTEXITCODE
         $errText = if (Test-Path $errFile) { Get-Content -Raw $errFile } else { "" }
