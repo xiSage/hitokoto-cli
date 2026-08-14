@@ -29,17 +29,16 @@ var errorConsole = new ErrorConsole(stderr);
 // the delegates below dispatch into. This avoids Spectre.Console.Cli's
 // reflection-based FromType<TCommand> path (which breaks under Native AOT),
 // while still letting Spectre bind settings and render help/tables.
-var configStore = new ConfigStore(errorConsole);
+var configModule = new ConfigModule(ConfigModule.GetDefaultFilePath(), errorConsole);
 var hitokotoClient = new HitokotoClient(errorConsole);
-var formatter = new OutputFormatter();
 
-var defaultCommand = new DefaultCommand(hitokotoClient, configStore, stdout, errorConsole, formatter);
-var configListCommand = new ConfigListCommand(configStore, stdout, errorConsole);
-var configGetCommand = new ConfigGetCommand(configStore, stdout, errorConsole);
-var configSetCommand = new ConfigSetCommand(configStore, stdout, errorConsole);
-var configUnsetCommand = new ConfigUnsetCommand(configStore, stdout, errorConsole);
-var configPathCommand = new ConfigPathCommand(stdout);
-var configResetCommand = new ConfigResetCommand(configStore);
+var defaultCommand = new DefaultCommand(hitokotoClient, configModule, stdout, errorConsole);
+var configListCommand = new ConfigListCommand(configModule, stdout, errorConsole);
+var configGetCommand = new ConfigGetCommand(configModule, stdout, errorConsole);
+var configSetCommand = new ConfigSetCommand(configModule, stdout, errorConsole);
+var configUnsetCommand = new ConfigUnsetCommand(configModule, stdout, errorConsole);
+var configPathCommand = new ConfigPathCommand(configModule, stdout);
+var configResetCommand = new ConfigResetCommand(configModule);
 
 var registrar = new DefaultTypeRegistrar();
 registrar.RegisterInstance(typeof(IAnsiConsole), stdout);

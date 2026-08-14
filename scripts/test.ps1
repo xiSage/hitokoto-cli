@@ -1,6 +1,11 @@
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
+# The CLI emits UTF-8 (Console.OutputEncoding = UTF8 in Program.cs). Decode the
+# child process's stdout as UTF-8 too, or Chinese text is mangled by the system
+# OEM codepage and --help/--format json assertions fail on non-UTF-8 locales.
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
 $projectDir = Join-Path $PSScriptRoot ".." "hitokoto-cli"
 $failed = 0
 $passed = 0
@@ -142,6 +147,32 @@ Test-Case "--format full" @("--format", "full") -Assert {
     param($out)
     if ([string]::IsNullOrWhiteSpace($out)) {
         throw "--format full produced no output"
+    }
+}
+
+# Config get/set/unset guards (exit codes, no destructive writes)
+Test-Case "config get output_format" @("config", "get", "output_format") -Assert {
+    param($out)
+    if ([string]::IsNullOrWhiteSpace("$out")) {
+        throw "config get output_format produced no output"
+    }
+}
+Test-Case "config get unknown_key" @("config", "get", "nope") -ExpectedExitCode 2
+Test-Case "config set unknown_key value" @("config", "set", "nope", "value") -ExpectedExitCode 2
+Test-Case "config set timeout_seconds not-a-number" @("config", "set", "timeout_seconds", "not-a-number") -ExpectedExitCode 2
+Test-Case "config set output_format bogus" @("config", "set", "output_format", "bogus") -ExpectedExitCode 2
+Test-Case "config unset unknown_key" @("config", "unset", "nope") -ExpectedExitCode 2
+
+# Fetch option guards
+Test-Case "--format with --raw conflict" @("--format", "json", "--raw", "text") -ExpectedExitCode 2
+Test-Case "--no-config --format json" @("--no-config", "--format", "json") -Assert {
+    param($out)
+    $text = "$out"
+    try {
+        $null = $text | ConvertFrom-Json
+    }
+    catch {
+        throw "--no-config --format json output is not valid JSON: $text"
     }
 }
 

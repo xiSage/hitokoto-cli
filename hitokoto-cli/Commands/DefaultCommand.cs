@@ -10,16 +10,14 @@ namespace hitokoto_cli.Commands;
 /// <summary>Default command: fetch and print one sentence.</summary>
 internal sealed class DefaultCommand(
     IHitokotoClient client,
-    IConfigStore configStore,
+    ConfigModule config,
     IAnsiConsole stdout,
-    ErrorConsole stderr,
-    OutputFormatter formatter)
+    ErrorConsole stderr)
 {
     private readonly IHitokotoClient _client = client;
-    private readonly IConfigStore _configStore = configStore;
+    private readonly ConfigModule _config = config;
     private readonly IAnsiConsole _stdout = stdout;
     private readonly ErrorConsole _stderr = stderr;
-    private readonly OutputFormatter _formatter = formatter;
 
     public async Task<int> ExecuteAsync(CommandContext _, FetchSettings s, CancellationToken _1)
     {
@@ -29,17 +27,16 @@ internal sealed class DefaultCommand(
             return 2;
         }
 
-        EffectiveParams eff;
-        if (s.NoConfig)
-        {
-            // Skip file creation/load entirely; use built-in defaults.
-            eff = ConfigStore.Merge(s, AppConfig.Defaults);
-        }
-        else
-        {
-            _configStore.EnsureCreated();
-            eff = ConfigStore.Merge(s, _configStore.Load());
-        }
+        var overrides = new CliOverrides(
+            Category: s.Category,
+            MinLength: s.MinLength,
+            MaxLength: s.MaxLength,
+            Endpoint: s.Endpoint,
+            Format: s.Format,
+            ShowSource: s.ShowSource,
+            ShowLink: s.ShowLink);
+
+        var eff = _config.Resolve(overrides, useFileConfig: !s.NoConfig);
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(eff.TimeoutSeconds));
 

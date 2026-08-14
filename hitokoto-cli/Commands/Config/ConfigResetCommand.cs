@@ -5,13 +5,13 @@ using Spectre.Console.Cli;
 namespace hitokoto_cli.Commands.Config;
 
 /// <summary>Reset the config file to built-in defaults.</summary>
-internal sealed class ConfigResetCommand(IConfigStore configStore)
+internal sealed class ConfigResetCommand(ConfigModule config)
 {
-    private readonly IConfigStore _configStore = configStore;
+    private readonly ConfigModule _config = config;
 
     public int Execute(CommandContext _, ConfigSettings _1, CancellationToken _2)
     {
-        _configStore.Reset();
+        _config.Reset();
         return 0;
     }
 }
