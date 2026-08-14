@@ -41,21 +41,23 @@ internal sealed class DefaultCommand(
 
         if (s.Raw is { } raw)
         {
-            var body = await _client.GetRawAsync(eff, raw, cts.Token);
-            if (body is null)
+            var result = await _client.GetRawAsync(eff, raw, cts.Token);
+            if (!result.IsSuccess)
             {
+                _diagnostics.RuntimeError(result.Message);
                 return Diagnostics.ExitRuntime;
             }
-            _stdout.WriteLine(body);
+            _stdout.WriteLine(result.Value!);
             return 0;
         }
 
         var resp = await _client.FetchAsync(eff, cts.Token);
-        if (resp is null)
+        if (!resp.IsSuccess)
         {
+            _diagnostics.RuntimeError(resp.Message);
             return Diagnostics.ExitRuntime;
         }
-        OutputFormatter.Render(resp, eff.OutputFormat, eff.ShowSource, eff.ShowLink, _stdout);
+        OutputFormatter.Render(resp.Value!, eff.OutputFormat, eff.ShowSource, eff.ShowLink, _stdout);
         return 0;
     }
 }

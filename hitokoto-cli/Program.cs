@@ -30,7 +30,13 @@ var diagnostics = new Diagnostics(stderr);
 // reflection-based FromType<TCommand> path (which breaks under Native AOT),
 // while still letting Spectre bind settings and render help/tables.
 var configModule = new ConfigModule(ConfigModule.GetDefaultFilePath(), diagnostics);
-var hitokotoClient = new HitokotoClient(diagnostics);
+var httpClient = new HttpClient
+{
+    // Per-request timeout is enforced via the caller's CancellationToken;
+    // keep the HTTP-level timeout slightly above any reasonable config.
+    Timeout = TimeSpan.FromSeconds(30),
+};
+var hitokotoClient = new HitokotoClient(httpClient);
 
 var defaultCommand = new DefaultCommand(hitokotoClient, configModule, stdout, diagnostics);
 var configListCommand = new ConfigListCommand(configModule, stdout, diagnostics);

@@ -202,6 +202,7 @@ Test-Case "config unset unknown_key" @("config", "unset", "nope") -ExpectedExitC
 
 # Fetch option guards
 Test-Case "--format with --raw conflict" @("--format", "json", "--raw", "text") -ExpectedExitCode 2 -StderrContains "不能同时使用"
+Test-Case "--endpoint unreachable" @("--endpoint", "http://127.0.0.1:1") -ExpectedExitCode 1 -StderrContains "网络请求失败"
 Test-Case "--no-config --format json" @("--no-config", "--format", "json") -Assert {
     param($out)
     $text = "$out"

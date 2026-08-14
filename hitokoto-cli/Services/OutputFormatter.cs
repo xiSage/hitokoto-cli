@@ -6,7 +6,7 @@ using Spectre.Console;
 
 namespace hitokoto_cli.Services;
 
-internal sealed class OutputFormatter
+internal static class OutputFormatter
 {
     public static void Render(HitokotoResponse resp, OutputFormat fmt, bool showSource, bool showLink, IAnsiConsole console)
     {

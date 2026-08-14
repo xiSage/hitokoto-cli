@@ -1,103 +1,63 @@
-using System.Globalization;
 using System.Net;
 using System.Text.Json;
-using hitokoto_cli.Infrastructure;
 using hitokoto_cli.Json;
 using hitokoto_cli.Models;
 
 namespace hitokoto_cli.Services;
 
-internal sealed class HitokotoClient(Diagnostics diagnostics) : IHitokotoClient
+/// <summary>
+/// Fetch module: builds the URL (<see cref="HitokotoUrl"/>), performs the HTTP
+/// call, and parses the response. Returns <see cref="FetchResult{T}"/> and has
+/// no side effects — failure reporting belongs to the caller. The HttpClient is
+/// constructor-injected so the seam stays real for tests.
+/// </summary>
+internal sealed class HitokotoClient(HttpClient httpClient) : IHitokotoClient
 {
-    private static readonly HttpClient HttpClient = new()
+    public async Task<FetchResult<HitokotoResponse>> FetchAsync(EffectiveParams p, CancellationToken ct)
     {
-        // Per-request timeout is enforced via the caller's CancellationToken;
-        // keep the HTTP-level timeout slightly above any reasonable config.
-        Timeout = TimeSpan.FromSeconds(30),
-    };
-
-    private readonly Diagnostics _diagnostics = diagnostics;
-
-    public async Task<HitokotoResponse?> FetchAsync(EffectiveParams p, CancellationToken ct)
-    {
-        var url = BuildUrl(p, encode: "json");
+        var url = HitokotoUrl.Build(p, encode: "json");
         var body = await SendAsync(url, ct);
-        if (body is null)
+        if (!body.IsSuccess)
         {
-            return null;
+            return FetchResult<HitokotoResponse>.Fail(body.Failure!.Value, body.Message);
         }
 
         try
         {
-            return JsonSerializer.Deserialize(body, HitokotoJsonContext.Default.HitokotoResponse);
+            return FetchResult<HitokotoResponse>.Ok(
+                JsonSerializer.Deserialize(body.Value!, HitokotoJsonContext.Default.HitokotoResponse)!);
         }
         catch (JsonException ex)
         {
-            _diagnostics.RuntimeError($"响应 JSON 解析失败：{ex.Message}");
-            return null;
+            return FetchResult<HitokotoResponse>.Fail(FetchFailureKind.Parse, $"响应 JSON 解析失败：{ex.Message}");
         }
     }
 
-    public async Task<string?> GetRawAsync(EffectiveParams p, RawEncode encode, CancellationToken ct)
+    public async Task<FetchResult<string>> GetRawAsync(EffectiveParams p, RawEncode encode, CancellationToken ct)
     {
-        var url = BuildUrl(p, encode: encode == RawEncode.Json ? "json" : "text");
+        var url = HitokotoUrl.Build(p, encode: encode == RawEncode.Json ? "json" : "text");
         return await SendAsync(url, ct);
     }
 
-    private async Task<string?> SendAsync(string url, CancellationToken ct)
+    private async Task<FetchResult<string>> SendAsync(string url, CancellationToken ct)
     {
         try
         {
-            using var resp = await HttpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
+            using var resp = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
             if (resp.StatusCode != HttpStatusCode.OK)
             {
-                _diagnostics.RuntimeError($"HTTP {(int)resp.StatusCode} {resp.StatusCode}");
-                return null;
+                return FetchResult<string>.Fail(FetchFailureKind.Http, $"HTTP {(int)resp.StatusCode} {resp.StatusCode}");
             }
-            return await resp.Content.ReadAsStringAsync(ct);
+            var body = await resp.Content.ReadAsStringAsync(ct);
+            return FetchResult<string>.Ok(body);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            _diagnostics.RuntimeError("请求超时。");
-            return null;
+            return FetchResult<string>.Fail(FetchFailureKind.Timeout, "请求超时。");
         }
         catch (HttpRequestException ex)
         {
-            _diagnostics.RuntimeError($"网络请求失败：{ex.Message}");
-            return null;
+            return FetchResult<string>.Fail(FetchFailureKind.Network, $"网络请求失败：{ex.Message}");
         }
-    }
-
-    private static string BuildUrl(EffectiveParams p, string encode)
-    {
-        var baseUri = p.Endpoint.TrimEnd('/');
-        var query = new List<string>();
-
-        // Each API param is sent only when the caller expressed a preference;
-        // null means "let the API choose" and is omitted entirely.
-        if (p.Categories is { Count: > 0 } cats)
-        {
-            foreach (var c in cats)
-            {
-                query.Add($"c={Uri.EscapeDataString(c)}");
-            }
-        }
-
-        if (p.MinLength is { } min)
-        {
-            query.Add($"min_length={min.ToString(CultureInfo.InvariantCulture)}");
-        }
-
-        if (p.MaxLength is { } max)
-        {
-            query.Add($"max_length={max.ToString(CultureInfo.InvariantCulture)}");
-        }
-
-        // encode is always sent: the client requires a specific response shape
-        // (json for parsing, or text for --raw text). It's a protocol detail,
-        // not a user preference, so it doesn't follow the "omit if unspecified" rule.
-        query.Add($"encode={encode}");
-
-        return $"{baseUri}/?{string.Join('&', query)}";
     }
 }
