@@ -1,3 +1,4 @@
+using hitokoto_cli.Infrastructure;
 using Spectre.Console;
 
 namespace hitokoto_cli;
@@ -25,17 +26,17 @@ internal static class HelpPrinter
         console.WriteLine();
 
         console.MarkupLine("[bold]选项（默认获取一言）[/]");
-        PrintOption(console, "-c, --category <CATEGORY>", "句子分类 (a-l)，可多次指定；缺省则不限制");
-        PrintOption(console, "    --min-length <N>", "句子最小长度（含）；缺省则不限制");
-        PrintOption(console, "    --max-length <N>", "句子最大长度（含）；缺省则不限制");
-        PrintOption(console, "    --endpoint <URL>", "API 端点 URL");
-        PrintOption(console, "-f, --format <FORMAT>", "CLI 输出格式: text | json | full（默认 full）");
-        PrintOption(console, "-r, --raw <ENCODE>", "透传 API 响应: text | json（与 --format 互斥）");
-        PrintOption(console, "    --show-source <TRUE_FALSE>", "full 格式是否显示来源（默认 true）");
-        PrintOption(console, "    --show-link <TRUE_FALSE>", "full 格式是否显示链接（默认 true）");
-        PrintOption(console, "-n, --no-config", "忽略配置文件，使用内置默认值");
-        PrintOption(console, "-h, --help", "显示此帮助信息");
-        PrintOption(console, "-v, --version", "显示版本信息");
+        PrintOption(console, CliSurface.Options.RenderSpec(CliSurface.Options.CategorySpec), CliSurface.Options.CategoryDesc);
+        PrintOption(console, CliSurface.Options.RenderSpec(CliSurface.Options.MinLengthSpec), CliSurface.Options.MinLengthDesc);
+        PrintOption(console, CliSurface.Options.RenderSpec(CliSurface.Options.MaxLengthSpec), CliSurface.Options.MaxLengthDesc);
+        PrintOption(console, CliSurface.Options.RenderSpec(CliSurface.Options.EndpointSpec), CliSurface.Options.EndpointDesc);
+        PrintOption(console, CliSurface.Options.RenderSpec(CliSurface.Options.FormatSpec), CliSurface.Options.FormatDesc);
+        PrintOption(console, CliSurface.Options.RenderSpec(CliSurface.Options.RawSpec), CliSurface.Options.RawDesc);
+        PrintOption(console, CliSurface.Options.RenderSpec(CliSurface.Options.ShowSourceSpec), CliSurface.Options.ShowSourceDesc);
+        PrintOption(console, CliSurface.Options.RenderSpec(CliSurface.Options.ShowLinkSpec), CliSurface.Options.ShowLinkDesc);
+        PrintOption(console, CliSurface.Options.RenderSpec(CliSurface.Options.NoConfigSpec), CliSurface.Options.NoConfigDesc);
+        PrintOption(console, CliSurface.Options.RenderSpec(CliSurface.Options.HelpSpec), CliSurface.Options.HelpDesc);
+        PrintOption(console, CliSurface.Options.RenderSpec(CliSurface.Options.VersionSpec), CliSurface.Options.VersionDesc);
         console.WriteLine();
 
         console.MarkupLine("[bold]分类代码 (a-l)[/]");
@@ -55,12 +56,10 @@ internal static class HelpPrinter
         console.WriteLine();
 
         console.MarkupLine("[bold]config 子命令[/]");
-        PrintConfigCommand(console, "list, ls", "列出全部配置值");
-        PrintConfigCommand(console, "get <key>", "获取配置值");
-        PrintConfigCommand(console, "set <key> <value>", "设置配置值（校验类型）");
-        PrintConfigCommand(console, "unset, rm <key>", "清除配置值（恢复默认）");
-        PrintConfigCommand(console, "path", "显示配置文件路径");
-        PrintConfigCommand(console, "reset", "重置配置文件为默认值");
+        foreach (var cmd in CliSurface.ConfigCommands)
+        {
+            PrintConfigCommand(console, cmd.UsageSpec, cmd.Description);
+        }
         console.WriteLine();
 
         console.MarkupLine("[bold]示例[/]");

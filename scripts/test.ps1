@@ -50,6 +50,7 @@ function Test-Case {
         [int]$ExpectedExitCode = 0,
         [string]$StderrContains = $null,
         [string]$StderrExcludes = $null,
+        [string[]]$SameOutputAs = $null,
         [scriptblock]$Assert = $null
     )
 
@@ -67,6 +68,16 @@ function Test-Case {
             Write-Host "  Stderr: $errText"
             $script:failed++
             return
+        }
+        if ($SameOutputAs) {
+            $other = & $binPath @SameOutputAs 2>$null
+            if ("$output" -ne "$other") {
+                Write-Host "  FAIL (output differs from: $($SameOutputAs -join ' '))" -ForegroundColor Red
+                Write-Host "  Output: $output"
+                Write-Host "  Other: $other"
+                $script:failed++
+                return
+            }
         }
         if ($StderrContains -and "$errText" -notmatch $StderrContains) {
             Write-Host "  FAIL (stderr missing: $StderrContains)" -ForegroundColor Red
@@ -128,6 +139,7 @@ Test-Case "-h" @("-h") -Assert {
 
 # Config
 Test-Case "config list" @("config", "list")
+Test-Case "config (no subcommand)" @("config") -SameOutputAs @("config", "list")
 Test-Case "config path" @("config", "path") -Assert {
     param($out)
     if ("$out" -notmatch '\.json') {
@@ -140,6 +152,12 @@ Test-Case "default (no args)" @() -Assert {
     param($out)
     if ([string]::IsNullOrWhiteSpace($out)) {
         throw "Default command produced no output"
+    }
+}
+Test-Case "option-only routes to default" @("-c", "a") -Assert {
+    param($out)
+    if ([string]::IsNullOrWhiteSpace($out)) {
+        throw "-c a produced no output"
     }
 }
 

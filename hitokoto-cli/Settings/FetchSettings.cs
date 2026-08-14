@@ -1,46 +1,49 @@
 using System.ComponentModel;
+using hitokoto_cli.Infrastructure;
 using hitokoto_cli.Models;
 using Spectre.Console.Cli;
 
 namespace hitokoto_cli.Settings;
 
 /// <summary>Options for the default (fetch) command. All nullable so that
-/// "not specified on CLI" is distinguishable from "explicitly set".</summary>
+/// "not specified on CLI" is distinguishable from "explicitly set".
+/// Option specs and descriptions come from <see cref="CliSurface.Options"/>
+/// so help text and the CLI binding share a single source.</summary>
 internal sealed class FetchSettings : CommandSettings
 {
-    [CommandOption("-c|--category <CATEGORY>")]
-    [Description("句子分类 (a-l)，可多次指定；缺省则不限制")]
+    [CommandOption(CliSurface.Options.CategorySpec)]
+    [Description(CliSurface.Options.CategoryDesc)]
     public string[]? Category { get; set; }
 
-    [CommandOption("--min-length <N>")]
-    [Description("句子最小长度 (含)；缺省则不限制")]
+    [CommandOption(CliSurface.Options.MinLengthSpec)]
+    [Description(CliSurface.Options.MinLengthDesc)]
     public int? MinLength { get; set; }
 
-    [CommandOption("--max-length <N>")]
-    [Description("句子最大长度 (含)；缺省则不限制")]
+    [CommandOption(CliSurface.Options.MaxLengthSpec)]
+    [Description(CliSurface.Options.MaxLengthDesc)]
     public int? MaxLength { get; set; }
 
-    [CommandOption("--endpoint <URL>")]
-    [Description("API 端点 URL")]
+    [CommandOption(CliSurface.Options.EndpointSpec)]
+    [Description(CliSurface.Options.EndpointDesc)]
     public string? Endpoint { get; set; }
 
-    [CommandOption("-f|--format <FORMAT>")]
-    [Description("CLI 输出格式: text | json | full")]
+    [CommandOption(CliSurface.Options.FormatSpec)]
+    [Description(CliSurface.Options.FormatDesc)]
     public OutputFormat? Format { get; set; }
 
-    [CommandOption("-r|--raw <ENCODE>")]
-    [Description("透传 API encode 原样输出: text | json (与 --format 互斥)")]
+    [CommandOption(CliSurface.Options.RawSpec)]
+    [Description(CliSurface.Options.RawDesc)]
     public RawEncode? Raw { get; set; }
 
-    [CommandOption("--show-source <TRUE_FALSE>")]
-    [Description("full 格式是否显示来源 (true|false，缺省则显示)")]
+    [CommandOption(CliSurface.Options.ShowSourceSpec)]
+    [Description(CliSurface.Options.ShowSourceDesc)]
     public bool? ShowSource { get; set; }
 
-    [CommandOption("--show-link <TRUE_FALSE>")]
-    [Description("full 格式是否显示链接 (true|false，缺省则显示)")]
+    [CommandOption(CliSurface.Options.ShowLinkSpec)]
+    [Description(CliSurface.Options.ShowLinkDesc)]
     public bool? ShowLink { get; set; }
 
-    [CommandOption("-n|--no-config")]
-    [Description("忽略配置文件，使用内置默认值")]
+    [CommandOption(CliSurface.Options.NoConfigSpec)]
+    [Description(CliSurface.Options.NoConfigDesc)]
     public bool NoConfig { get; set; }
 }
