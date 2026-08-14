@@ -23,26 +23,25 @@ var stderr = AnsiConsole.Create(new AnsiConsoleSettings
 {
     Out = new AnsiConsoleOutput(Console.Error),
 });
-var errorConsole = new ErrorConsole(stderr);
+var diagnostics = new Diagnostics(stderr);
 
 // Construct services eagerly. Command classes are kept as plain workers that
 // the delegates below dispatch into. This avoids Spectre.Console.Cli's
 // reflection-based FromType<TCommand> path (which breaks under Native AOT),
 // while still letting Spectre bind settings and render help/tables.
-var configModule = new ConfigModule(ConfigModule.GetDefaultFilePath(), errorConsole);
-var hitokotoClient = new HitokotoClient(errorConsole);
+var configModule = new ConfigModule(ConfigModule.GetDefaultFilePath(), diagnostics);
+var hitokotoClient = new HitokotoClient(diagnostics);
 
-var defaultCommand = new DefaultCommand(hitokotoClient, configModule, stdout, errorConsole);
-var configListCommand = new ConfigListCommand(configModule, stdout, errorConsole);
-var configGetCommand = new ConfigGetCommand(configModule, stdout, errorConsole);
-var configSetCommand = new ConfigSetCommand(configModule, stdout, errorConsole);
-var configUnsetCommand = new ConfigUnsetCommand(configModule, stdout, errorConsole);
+var defaultCommand = new DefaultCommand(hitokotoClient, configModule, stdout, diagnostics);
+var configListCommand = new ConfigListCommand(configModule, stdout, diagnostics);
+var configGetCommand = new ConfigGetCommand(configModule, stdout, diagnostics);
+var configSetCommand = new ConfigSetCommand(configModule, diagnostics);
+var configUnsetCommand = new ConfigUnsetCommand(configModule, diagnostics);
 var configPathCommand = new ConfigPathCommand(configModule, stdout);
 var configResetCommand = new ConfigResetCommand(configModule);
 
 var registrar = new DefaultTypeRegistrar();
 registrar.RegisterInstance(typeof(IAnsiConsole), stdout);
-registrar.RegisterInstance(typeof(ErrorConsole), errorConsole);
 
 // Pre-register settings types with explicit factories so Spectre can resolve
 // them without Activator.CreateInstance (which needs reflection — trimmed
@@ -66,14 +65,7 @@ app.Configure(config =>
     config.Settings.ShowOptionDefaultValues = true;
     config.UseStrictParsing();
 
-    config.SetExceptionHandler((ex, resolver) =>
-    {
-        var err = resolver?.Resolve(typeof(ErrorConsole)) as ErrorConsole;
-        var console = err?.Console ?? AnsiConsole.Console;
-        var code = ex is IOException or UnauthorizedAccessException ? 3 : 1;
-        console.MarkupLine($"[red]错误：{Markup.Escape(ex.Message)}[/]");
-        return code;
-    });
+    config.SetExceptionHandler((ex, _) => diagnostics.HandleException(ex));
 
     // Hidden default command: dispatches to DefaultCommand. Routes here when
     // the user passes no subcommand (args empty or all options).

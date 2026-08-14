@@ -4,11 +4,10 @@ using System.Text.Json;
 using hitokoto_cli.Infrastructure;
 using hitokoto_cli.Json;
 using hitokoto_cli.Models;
-using Spectre.Console;
 
 namespace hitokoto_cli.Services;
 
-internal sealed class HitokotoClient(ErrorConsole stderr) : IHitokotoClient
+internal sealed class HitokotoClient(Diagnostics diagnostics) : IHitokotoClient
 {
     private static readonly HttpClient HttpClient = new()
     {
@@ -17,7 +16,7 @@ internal sealed class HitokotoClient(ErrorConsole stderr) : IHitokotoClient
         Timeout = TimeSpan.FromSeconds(30),
     };
 
-    private readonly ErrorConsole _stderr = stderr;
+    private readonly Diagnostics _diagnostics = diagnostics;
 
     public async Task<HitokotoResponse?> FetchAsync(EffectiveParams p, CancellationToken ct)
     {
@@ -34,7 +33,7 @@ internal sealed class HitokotoClient(ErrorConsole stderr) : IHitokotoClient
         }
         catch (JsonException ex)
         {
-            _stderr.Console.MarkupLine($"[red]错误：响应 JSON 解析失败：{Markup.Escape(ex.Message)}[/]");
+            _diagnostics.RuntimeError($"响应 JSON 解析失败：{ex.Message}");
             return null;
         }
     }
@@ -52,19 +51,19 @@ internal sealed class HitokotoClient(ErrorConsole stderr) : IHitokotoClient
             using var resp = await HttpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
             if (resp.StatusCode != HttpStatusCode.OK)
             {
-                _stderr.Console.MarkupLine($"[red]错误：HTTP {(int)resp.StatusCode} {Markup.Escape(resp.StatusCode.ToString())}[/]");
+                _diagnostics.RuntimeError($"HTTP {(int)resp.StatusCode} {resp.StatusCode}");
                 return null;
             }
             return await resp.Content.ReadAsStringAsync(ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            _stderr.Console.MarkupLine("[red]错误：请求超时。[/]");
+            _diagnostics.RuntimeError("请求超时。");
             return null;
         }
         catch (HttpRequestException ex)
         {
-            _stderr.Console.MarkupLine($"[red]错误：网络请求失败：{Markup.Escape(ex.Message)}[/]");
+            _diagnostics.RuntimeError($"网络请求失败：{ex.Message}");
             return null;
         }
     }

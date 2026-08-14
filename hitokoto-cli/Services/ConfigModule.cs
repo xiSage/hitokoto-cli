@@ -2,7 +2,6 @@ using System.Text.Json;
 using hitokoto_cli.Infrastructure;
 using hitokoto_cli.Json;
 using hitokoto_cli.Models;
-using Spectre.Console;
 
 namespace hitokoto_cli.Services;
 
@@ -14,9 +13,9 @@ namespace hitokoto_cli.Services;
 /// seam used only by this module. The config file path is constructor-injected
 /// so persistence is testable against a temp directory through the real seam.
 /// </summary>
-internal sealed class ConfigModule(string path, ErrorConsole stderr)
+internal sealed class ConfigModule(string path, Diagnostics diagnostics)
 {
-    private readonly ErrorConsole _stderr = stderr; // messages go to stderr to keep stdout clean
+    private readonly Diagnostics _diagnostics = diagnostics; // messages go to stderr to keep stdout clean
 
     /// <summary>The config file path this module reads and writes.</summary>
     public string Path => path;
@@ -38,7 +37,7 @@ internal sealed class ConfigModule(string path, ErrorConsole stderr)
 
         EnsureDirectory(path);
         SaveInternal(AppConfig.Defaults);
-        _stderr.Console.MarkupLine($"[green]已创建默认配置文件：[/]{Markup.Escape(path)}");
+        _diagnostics.Success("已创建默认配置文件：", path);
     }
 
     public AppConfig Load()
@@ -56,12 +55,12 @@ internal sealed class ConfigModule(string path, ErrorConsole stderr)
         }
         catch (JsonException ex)
         {
-            _stderr.Console.MarkupLine($"[yellow]警告：配置文件解析失败（{Markup.Escape(ex.Message)}），使用默认值。[/]");
+            _diagnostics.Warn($"配置文件解析失败（{ex.Message}），使用默认值。");
             return AppConfig.Defaults;
         }
         catch (IOException ex)
         {
-            _stderr.Console.MarkupLine($"[yellow]警告：配置文件读取失败（{Markup.Escape(ex.Message)}），使用默认值。[/]");
+            _diagnostics.Warn($"配置文件读取失败（{ex.Message}），使用默认值。");
             return AppConfig.Defaults;
         }
     }
@@ -76,7 +75,7 @@ internal sealed class ConfigModule(string path, ErrorConsole stderr)
     {
         EnsureDirectory(path);
         SaveInternal(AppConfig.Defaults);
-        _stderr.Console.MarkupLine($"[green]已重置配置文件：[/]{Markup.Escape(path)}");
+        _diagnostics.Success("已重置配置文件：", path);
     }
 
     /// <summary>

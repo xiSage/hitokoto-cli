@@ -48,16 +48,35 @@ function Test-Case {
         [string]$Name,
         [string[]]$CliArgs,
         [int]$ExpectedExitCode = 0,
+        [string]$StderrContains = $null,
+        [string]$StderrExcludes = $null,
         [scriptblock]$Assert = $null
     )
 
     Write-Host "  TEST: $Name" -NoNewline
     try {
-        $output = & $binPath @CliArgs 2>&1
+        $errFile = Join-Path $env:TEMP ("hitokoto-stderr-" + [guid]::NewGuid().ToString("N") + ".log")
+        $output = & $binPath @CliArgs 2> $errFile
         $exitCode = $LASTEXITCODE
+        $errText = if (Test-Path $errFile) { Get-Content -Raw $errFile } else { "" }
+        Remove-Item $errFile -ErrorAction SilentlyContinue
+
         if ($exitCode -ne $ExpectedExitCode) {
             Write-Host "  FAIL (exit code $exitCode, expected $ExpectedExitCode)" -ForegroundColor Red
             Write-Host "  Output: $output"
+            Write-Host "  Stderr: $errText"
+            $script:failed++
+            return
+        }
+        if ($StderrContains -and "$errText" -notmatch $StderrContains) {
+            Write-Host "  FAIL (stderr missing: $StderrContains)" -ForegroundColor Red
+            Write-Host "  Stderr: $errText"
+            $script:failed++
+            return
+        }
+        if ($StderrExcludes -and "$errText" -match $StderrExcludes) {
+            Write-Host "  FAIL (stderr should not contain: $StderrExcludes)" -ForegroundColor Red
+            Write-Host "  Stderr: $errText"
             $script:failed++
             return
         }
@@ -125,7 +144,7 @@ Test-Case "default (no args)" @() -Assert {
 }
 
 # Format options
-Test-Case "--format text" @("--format", "text") -Assert {
+Test-Case "--format text" @("--format", "text") -StderrExcludes "错误" -Assert {
     param($out)
     if ([string]::IsNullOrWhiteSpace($out)) {
         throw "--format text produced no output"
@@ -157,14 +176,14 @@ Test-Case "config get output_format" @("config", "get", "output_format") -Assert
         throw "config get output_format produced no output"
     }
 }
-Test-Case "config get unknown_key" @("config", "get", "nope") -ExpectedExitCode 2
-Test-Case "config set unknown_key value" @("config", "set", "nope", "value") -ExpectedExitCode 2
-Test-Case "config set timeout_seconds not-a-number" @("config", "set", "timeout_seconds", "not-a-number") -ExpectedExitCode 2
-Test-Case "config set output_format bogus" @("config", "set", "output_format", "bogus") -ExpectedExitCode 2
-Test-Case "config unset unknown_key" @("config", "unset", "nope") -ExpectedExitCode 2
+Test-Case "config get unknown_key" @("config", "get", "nope") -ExpectedExitCode 2 -StderrContains "未知键"
+Test-Case "config set unknown_key value" @("config", "set", "nope", "value") -ExpectedExitCode 2 -StderrContains "未知键"
+Test-Case "config set timeout_seconds not-a-number" @("config", "set", "timeout_seconds", "not-a-number") -ExpectedExitCode 2 -StderrContains "无法解析"
+Test-Case "config set output_format bogus" @("config", "set", "output_format", "bogus") -ExpectedExitCode 2 -StderrContains "无法解析"
+Test-Case "config unset unknown_key" @("config", "unset", "nope") -ExpectedExitCode 2 -StderrContains "未知键"
 
 # Fetch option guards
-Test-Case "--format with --raw conflict" @("--format", "json", "--raw", "text") -ExpectedExitCode 2
+Test-Case "--format with --raw conflict" @("--format", "json", "--raw", "text") -ExpectedExitCode 2 -StderrContains "不能同时使用"
 Test-Case "--no-config --format json" @("--no-config", "--format", "json") -Assert {
     param($out)
     $text = "$out"

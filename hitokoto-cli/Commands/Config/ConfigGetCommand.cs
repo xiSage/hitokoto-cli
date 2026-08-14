@@ -16,23 +16,22 @@ internal sealed class ConfigGetSettings : ConfigSettings
 }
 
 /// <summary>Print the current value of a single config key.</summary>
-internal sealed class ConfigGetCommand(ConfigModule config, IAnsiConsole stdout, ErrorConsole stderr)
+internal sealed class ConfigGetCommand(ConfigModule config, IAnsiConsole stdout, Diagnostics diagnostics)
 {
     private readonly ConfigModule _config = config;
     private readonly IAnsiConsole _stdout = stdout;
-    private readonly ErrorConsole _stderr = stderr;
+    private readonly Diagnostics _diagnostics = diagnostics;
 
     public int Execute(CommandContext _, ConfigGetSettings s, CancellationToken _1)
     {
         if (!ConfigModule.TryGetKey(s.Key, out var info))
         {
-            _stderr.Console.MarkupLine($"[red]错误：未知键 '{Markup.Escape(s.Key)}'[/]");
-            return 2;
+            return _diagnostics.UsageError($"未知键 '{s.Key}'");
         }
 
         if (!_config.FileExists)
         {
-            _stderr.Console.MarkupLine("[yellow]未找到配置文件，显示默认值[/]");
+            _diagnostics.Warn("未找到配置文件，显示默认值");
         }
 
         var cfg = _config.Load();

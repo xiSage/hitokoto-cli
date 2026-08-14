@@ -12,19 +12,18 @@ internal sealed class DefaultCommand(
     IHitokotoClient client,
     ConfigModule config,
     IAnsiConsole stdout,
-    ErrorConsole stderr)
+    Diagnostics diagnostics)
 {
     private readonly IHitokotoClient _client = client;
     private readonly ConfigModule _config = config;
     private readonly IAnsiConsole _stdout = stdout;
-    private readonly ErrorConsole _stderr = stderr;
+    private readonly Diagnostics _diagnostics = diagnostics;
 
     public async Task<int> ExecuteAsync(CommandContext _, FetchSettings s, CancellationToken _1)
     {
         if (s.Format is not null && s.Raw is not null)
         {
-            _stderr.Console.MarkupLine("[red]错误：--format 与 --raw 不能同时使用[/]");
-            return 2;
+            return _diagnostics.UsageError("--format 与 --raw 不能同时使用");
         }
 
         var overrides = new CliOverrides(
@@ -45,7 +44,7 @@ internal sealed class DefaultCommand(
             var body = await _client.GetRawAsync(eff, raw, cts.Token);
             if (body is null)
             {
-                return 1;
+                return Diagnostics.ExitRuntime;
             }
             _stdout.WriteLine(body);
             return 0;
@@ -54,7 +53,7 @@ internal sealed class DefaultCommand(
         var resp = await _client.FetchAsync(eff, cts.Token);
         if (resp is null)
         {
-            return 1;
+            return Diagnostics.ExitRuntime;
         }
         OutputFormatter.Render(resp, eff.OutputFormat, eff.ShowSource, eff.ShowLink, _stdout);
         return 0;

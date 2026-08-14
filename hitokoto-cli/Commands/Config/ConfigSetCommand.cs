@@ -1,9 +1,7 @@
 using System.ComponentModel;
 using hitokoto_cli.Infrastructure;
-using hitokoto_cli.Models;
 using hitokoto_cli.Services;
 using hitokoto_cli.Settings;
-using Spectre.Console;
 using Spectre.Console.Cli;
 
 namespace hitokoto_cli.Commands.Config;
@@ -20,18 +18,16 @@ internal sealed class ConfigSetSettings : ConfigSettings
 }
 
 /// <summary>Set a config key, type-checking the value before persisting.</summary>
-internal sealed class ConfigSetCommand(ConfigModule config, IAnsiConsole stdout, ErrorConsole stderr)
+internal sealed class ConfigSetCommand(ConfigModule config, Diagnostics diagnostics)
 {
     private readonly ConfigModule _config = config;
-    private readonly IAnsiConsole _stdout = stdout;
-    private readonly ErrorConsole _stderr = stderr;
+    private readonly Diagnostics _diagnostics = diagnostics;
 
     public int Execute(CommandContext _, ConfigSetSettings s, CancellationToken _1)
     {
         if (!ConfigModule.TryGetKey(s.Key, out var info))
         {
-            _stderr.Console.MarkupLine($"[red]错误：未知键 '{Markup.Escape(s.Key)}'[/]");
-            return 2;
+            return _diagnostics.UsageError($"未知键 '{s.Key}'");
         }
 
         _config.EnsureCreated();
@@ -39,14 +35,12 @@ internal sealed class ConfigSetCommand(ConfigModule config, IAnsiConsole stdout,
 
         if (!info.TryParse(s.Value, out var parsed))
         {
-            _stderr.Console.MarkupLine(
-                $"[red]错误：值 '{Markup.Escape(s.Value)}' 无法解析为 {Markup.Escape(info.ExpectedTypeDisplay)}[/]");
-            return 2;
+            return _diagnostics.UsageError($"值 '{s.Value}' 无法解析为 {info.ExpectedTypeDisplay}");
         }
 
         info.Setter(cfg, parsed!);
         _config.Save(cfg);
-        _stdout.MarkupLine($"[green]已设置[/] {Markup.Escape(s.Key)} = {Markup.Escape(s.Value)}");
+        _diagnostics.Success("已设置", $"{s.Key} = {s.Value}");
         return 0;
     }
 }

@@ -8,17 +8,17 @@ using Spectre.Console.Cli;
 namespace hitokoto_cli.Commands.Config;
 
 /// <summary>Branch default: list all config keys and their current values.</summary>
-internal sealed class ConfigListCommand(ConfigModule config, IAnsiConsole stdout, ErrorConsole stderr)
+internal sealed class ConfigListCommand(ConfigModule config, IAnsiConsole stdout, Diagnostics diagnostics)
 {
     private readonly ConfigModule _config = config;
     private readonly IAnsiConsole _stdout = stdout;
-    private readonly ErrorConsole _stderr = stderr;
+    private readonly Diagnostics _diagnostics = diagnostics;
 
     public int Execute(CommandContext _, ConfigSettings _1, CancellationToken _2)
     {
         if (!_config.FileExists)
         {
-            _stderr.Console.MarkupLine("[yellow]未找到配置文件，显示默认值[/]");
+            _diagnostics.Warn("未找到配置文件，显示默认值");
         }
 
         var cfg = _config.Load();
