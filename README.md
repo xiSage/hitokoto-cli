@@ -16,6 +16,12 @@
 brew install xisage/tap/hitokoto-cli
 ```
 
+### winget (Windows)
+
+```bash
+winget install xiSage.hitokoto-cli
+```
+
 ### AUR (Arch Linux)
 
 ```bash
