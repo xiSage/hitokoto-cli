@@ -1,6 +1,10 @@
 # Dependabot 配置：自动更新 NuGet 包与 GitHub Actions 版本。
 
 version: 2
+# 顶层自定义标签：Dependabot 首次使用时会在仓库中自动创建该标签。
+labels:
+  - name: dependencies
+    color: 0366d6
 updates:
   # NuGet 依赖（hitokoto-cli.csproj 中的 PackageReference）
   - package-ecosystem: nuget
