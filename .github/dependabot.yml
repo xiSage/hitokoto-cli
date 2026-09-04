@@ -1,0 +1,27 @@
+# Dependabot 配置：自动更新 NuGet 包与 GitHub Actions 版本。
+
+version: 2
+updates:
+  # NuGet 依赖（hitokoto-cli.csproj 中的 PackageReference）
+  - package-ecosystem: nuget
+    directory: /hitokoto-cli
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+
+  # GitHub Actions（.github/workflows/ci.yml 中使用的 actions 版本）
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:30"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
