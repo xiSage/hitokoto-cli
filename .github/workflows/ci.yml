@@ -21,7 +21,7 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
@@ -56,7 +56,7 @@ jobs:
           - { rid: linux-bionic-arm64, os: ubuntu-latest, aot-args: '-p:DisableUnsupportedError=true -p:PublishAotUsingRuntimePack=true -p:TermuxRpath=/data/data/com.termux/files/usr/lib', display-rid: 'linux-bionic-arm64-termux' }
           - { rid: linux-bionic-x64,   os: ubuntu-latest, aot-args: '-p:DisableUnsupportedError=true -p:PublishAotUsingRuntimePack=true -p:TermuxRpath=/data/data/com.termux/files/usr/lib', display-rid: 'linux-bionic-x64-termux' }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
